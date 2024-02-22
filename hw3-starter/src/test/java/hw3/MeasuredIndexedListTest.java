@@ -56,4 +56,33 @@ public class MeasuredIndexedListTest {
     measuredIndexedList.put(4, DEFAULT_VALUE - 2);
     assertEquals(LENGTH - 3, measuredIndexedList.count(DEFAULT_VALUE));
   }
+
+  @Test
+  @DisplayName("MeasuredIndexedList counts mutations only")
+  void countsMutationsOnly() {
+    measuredIndexedList.put(0, LENGTH - 1);
+    measuredIndexedList.put(2, LENGTH - 3);
+    assertEquals(2, measuredIndexedList.mutations());
+  }
+
+  @Test
+  @DisplayName("MeasuredIndexedList counts accesses only")
+  void countsAccesses() {
+    measuredIndexedList.get(0);
+    measuredIndexedList.get(1);
+    measuredIndexedList.get(2);
+    assertEquals(3, measuredIndexedList.accesses());
+  }
+
+  @Test
+  @DisplayName("MeasuredIndexedList counts mutations and accesses")
+  void countsMutationsAndAccesses() {
+    measuredIndexedList.get(0);
+    measuredIndexedList.get(1);
+    measuredIndexedList.get(2);
+    measuredIndexedList.put(0, LENGTH - 1);
+    measuredIndexedList.put(2, LENGTH - 3);
+    assertEquals(3, measuredIndexedList.accesses());
+    assertEquals(2, measuredIndexedList.mutations());
+  }
 }
