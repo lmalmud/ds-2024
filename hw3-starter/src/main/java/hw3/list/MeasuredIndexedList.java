@@ -20,6 +20,12 @@ public class MeasuredIndexedList<T> extends ArrayIndexedList<T>
 
   private int numAccesses;
   private int numMutations;
+
+  /**
+   * Initializes a MeasuredIndexedList.
+   * @param size the number of elements in the list
+   * @param defaultValue the value that will be automatically assigned to all indices
+   */
   public MeasuredIndexedList(int size, T defaultValue) {
     super(size, defaultValue);
     reset();
