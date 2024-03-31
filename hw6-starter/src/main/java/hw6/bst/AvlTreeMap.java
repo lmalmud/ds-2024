@@ -1,7 +1,11 @@
 package hw6.bst;
 
 import hw6.OrderedMap;
+
+import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.NoSuchElementException;
+import java.util.Queue;
 
 import static java.lang.Math.max;
 
@@ -50,31 +54,21 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
    * @param node node to be checked
    */
   private Node<K, V> balance(Node<K, V> node) {
-    Node<K, V> potentialNewRoot = node;
     // single right rotation: left heavy node, left heavy child
     if (balanceFactor(node) > 1 && balanceFactor(node.left) >= 1) {
-      potentialNewRoot = node.left;
-      rightRotate(node);
+      return rightRotate(node);
 
     // single left rotation: right heavy node, right heavy child
     } else if (balanceFactor(node) < -1 && balanceFactor(node.right) <= -1) {
-      System.out.println("LEFT");
-      potentialNewRoot = node.right;
-      leftRotate(node);
+      return leftRotate(node);
 
     // right-left rotation: right heavy node, left heavy child
     } else if (balanceFactor(node) < -1 && balanceFactor(node.right) >= 1) {
-      potentialNewRoot = node.right.left; // FIXME: is it possible this could be null?
-      rightLeftRotate(node);
+      return rightLeftRotate(node);
 
     // left-right rotation: left heavy node, right heavy child
     } else if (balanceFactor(node) > 1 && balanceFactor(node.left) <= -1) {
-      potentialNewRoot = node.left.right;
-      leftRightRotate(node);
-    }
-    if (node == root) { // if the node that we performed a rotation on was the root, we must update accordingly
-      root = potentialNewRoot;
-      return potentialNewRoot; // must return since this function is called form insert
+      return leftRightRotate(node);
     }
     return node;
 
@@ -83,47 +77,49 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
   /**
    * Performs a single left rotation.
    * @param node that is right-heavy (bf < -1)
+   * @return the new root
    */
-  private void leftRotate(Node<K, V> node) {
+  private Node<K, V> leftRotate(Node<K, V> node) {
     Node<K, V> child = node.right;
     node.right = child.left;
     child.left = node;
+    height(child); // want to update the child's height before the node's
     height(node);
-    height(child);
+    return child;
   }
 
   /**
    * Performs a single right rotation.
    * @param node that is left-heavy (bf > 1)
+   * @return the new root
    */
-  private void rightRotate(Node<K, V> node) {
+  private Node<K, V> rightRotate(Node<K, V> node) {
     Node<K, V> child = node.left;
     node.left = child.right;
     child.right = node;
-    System.out.println("RIGHT");
+    height(child);
+    height(node);
+    return child;
   }
 
   /**
    * Performs a left rotation and right rotation.
    * @param node target
+   * @return the new root
    */
-  private void leftRightRotate(Node<K, V> node) {
-    Node<K, V> r = node;
-    Node<K, V> child = node.left;
-    Node<K, V> grandchild = node.left.right;
-    child.right = grandchild.left;
-    grandchild.left = child;
-    r.left = grandchild;
-    r.right = grandchild.right;
-    grandchild.right = r; // grandchild is now the root
+  private Node<K, V> leftRightRotate(Node<K, V> node) {
+    node.left = leftRotate(node.left);
+    return rightRotate(node);
   }
 
   /**
    * Performs a right and left rotation.
    * @param node target
+   * @return the new root
    */
-  private void rightLeftRotate(Node<K, V> node) {
-
+  private Node<K, V> rightLeftRotate(Node<K, V> node) {
+    node.right = rightRotate(node.right);
+    return leftRotate(node);
   }
 
   /**
@@ -187,6 +183,11 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     numElements++;
   }
 
+  /**
+   * Returns the largest node in a given subtree.
+   * @param node root
+   * @return node with largest value
+   */
   private Node<K, V> findLargestNode(Node<K, V> node) {
     if (node.right == null) {
       return node;
@@ -195,6 +196,12 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     }
   }
 
+  /**
+   * Removes the subtree with the given key
+   * @param node root
+   * @param k target key
+   * @return the new root
+   */
   private Node<K, V> removeSubtree(Node<K, V> node, K k) {
     int compareResult = k.compareTo(node.key);
     if (compareResult == 0) { // found the node
@@ -204,9 +211,11 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
         return node.left;
       } else {
         // recurse
-        Node<K, V> smallest = findLargestNode(node.left);
-        node.value = smallest.value;
-        smallest = removeSubtree(smallest, smallest.key);
+        Node<K, V> largest = findLargestNode(node.left);
+        node.value = largest.value;
+        node.key = largest.key;
+        node.left = removeSubtree(node.left, largest.key);
+        return node;
       }
     } else if (compareResult < 0) { // k < node.key
       node.left = removeSubtree(node.left, k);
@@ -214,8 +223,7 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
       node.right = removeSubtree(node.right, k);
     }
     height(node);
-    balance(node); // check if needs to be rebalanced on recursion up
-    return node;
+    return balance(node); // check if node needs to be rebalanced on recursion up
   }
 
   @Override
@@ -233,17 +241,27 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
 
   @Override
   public void put(K k, V v) throws IllegalArgumentException {
-    // TODO Implement Me!
+    Node<K, V> found = find(root, k);
+    if (k == null || found == null) {
+      throw new IllegalArgumentException();
+    }
+    found.value = v;
   }
 
   @Override
   public V get(K k) throws IllegalArgumentException {
-    // TODO Implement Me!
-    return null;
+    Node<K, V> found = find(root, k);
+    if (k == null || found == null) {
+      throw new IllegalArgumentException();
+    }
+    return found.value;
   }
 
   @Override
   public boolean has(K k) {
+    if (k == null) {
+      return false;
+    }
     return find(root, k) != null;
   }
 
@@ -254,8 +272,39 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
 
   @Override
   public Iterator<K> iterator() {
-    // TODO Implement Me!
-    return null;
+    return new avlTreeMapIterator();
+  }
+
+  public class avlTreeMapIterator implements Iterator<K> {
+
+    Queue<K> queue;
+
+    avlTreeMapIterator() {
+      queue = new ArrayDeque<K>();
+      fillQueue(root);
+    }
+
+    private void fillQueue(Node<K, V> node) {
+      if (node != null) {
+        fillQueue(node.left);
+        queue.add(node.key);
+        fillQueue(node.right);
+      }
+    }
+
+    @Override
+    public boolean hasNext() {
+      return (!queue.isEmpty());
+    }
+
+    @Override
+    public K next() throws NoSuchElementException {
+      if (!hasNext()) {
+        throw new NoSuchElementException();
+      } else {
+        return queue.remove();
+      }
+    }
   }
 
   /*** Do not change this function's name or modify its code. ***/
