@@ -50,24 +50,58 @@ public class TreapMapTest extends BinarySearchTreeMapTest {
 
   @Test
   @DisplayName("Triggers a right rotation by removal.")
-  public void removeRightRotation() {
+  public void removeRightRotationTwoChildren() {
+    Map<String, String> map = createMapWithSeed(4);
+    map.insert("b", "b"); // -1157023572 (1) - root
+    map.insert("a", "a"); // -396984392 (2) - left child
+    map.insert("d", "d"); // -349120689 (3) - right child
+    map.remove("b"); // triggeres a right rotation at b and then a left rotation at b
 
+    // NOTE: inadverdently also tests a left rotation with one child
+
+    assertEquals(2, map.size());
+    assertEquals("a:a:-396984392\nnull d:d:-349120689\n", map.toString());
   }
 
   @Test
   @DisplayName("Triggers a left rotation by removal.")
-  public void removeLeftRotation() {
+  public void removeLeftRotationTwoChildren() {
     Map<String, String> map = createMapWithSeed(4);
-    map.insert("b", "b"); // -1157023572 (1)
+    map.insert("b", "b"); // -1157023572 (1) - root
+    map.insert("d", "d"); // -396984392 (2) - right child
+    map.insert("a", "a"); // -349120689 (3) - left child
+    map.remove("b"); // triggers a left rotation at b and then a right rotation at a
 
-    map.insert("d", "d"); // -396984392 (2)
-    map.insert("a", "a"); // -349120689 (3)
-
-    map.remove("b");
+    // NOTE: also inadvertently tests a right rotation with one node
 
     assertEquals(2, map.size());
     assertEquals("d:d:-396984392\na:a:-349120689 null\n", map.toString());
-    
+
+  }
+
+  @Test
+  @DisplayName("Ensures that structure is maintained when a node with one child is removed.")
+  public void removeOneChild() {
+    Map<String, String> map = createMapWithSeed(4);
+    map.insert("c", "c"); // -1157023572 (1) - root
+    map.insert("b", "b"); // -396984392 (2) - right child
+    map.insert("a", "a"); // -349120689 (3) - left child
+    map.remove("b"); // removes b which has a as a left child
+
+    assertEquals(2, map.size());
+    assertEquals("c:c:-1157023572\na:a:-349120689 null\n", map.toString());
+  }
+
+  @Test
+  @DisplayName("Ensures removing a leaf functions correctly.")
+  public void removeLeaf() {
+    Map<String, String> map = createMapWithSeed(4);
+    map.insert("c", "c"); // -1157023572 (1) - root
+    map.insert("b", "b"); // -396984392 (2) - right child
+    map.remove("b");
+
+    assertEquals(1, map.size());
+    assertEquals("c:c:-1157023572\n", map.toString());
   }
 
 }

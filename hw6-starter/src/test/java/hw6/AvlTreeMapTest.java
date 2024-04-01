@@ -129,11 +129,48 @@ public class AvlTreeMapTest extends BinarySearchTreeMapTest {
   }
 
   @Test
+  @DisplayName("Ensures that a right left rotation is performed after a removal.")
+  public void removeRightLeftRotation() {
+    map.insert("c", "c");
+    map.insert("a", "a");
+    map.insert("e", "e");
+    map.insert("d", "d");
+    map.remove("a"); // triggers a right left rotation at c
+
+    assertEquals(3, map.size());
+    assertEquals("d:d\nc:c e:e\n", map.toString());
+  }
+
+  @Test
   @DisplayName("Ensures that a left right rotation is performed in a simple case of three nodes.")
   public void insertLeftRightRotation() {
     map.insert("c", "c");
     map.insert("a", "a");
     map.insert("b", "b");
+
+    assertEquals(3, map.size());
+    assertEquals("b:b\na:a c:c\n", map.toString());
+  }
+
+  @Test
+  @DisplayName("Ensures that a left right rotation is performed after a removal")
+  public void removeLeftRightRotation() {
+    map.insert("c", "c");
+    map.insert("a", "a");
+    map.insert("d", "d");
+    map.insert("b", "b");
+    map.remove("d"); // triggers a left right rotation at c
+
+    assertEquals(3, map.size());
+    assertEquals("b:b\na:a c:c\n", map.toString());
+  }
+
+  @Test
+  @DisplayName("Properly inserts a node when no rotation should occur.")
+  public void insertNoRotation() {
+    map.insert("b", "b");
+    map.insert("a", "a");
+    map.insert("c", "c");
 
     assertEquals(3, map.size());
     assertEquals("b:b\na:a c:c\n", map.toString());

@@ -2,12 +2,9 @@ package hw6.bst;
 
 import hw6.OrderedMap;
 
-import java.util.ArrayDeque;
-import java.util.Iterator;
-import java.util.NoSuchElementException;
-import java.util.Queue;
-
 import static java.lang.Math.max;
+import java.util.Iterator;
+import java.util.Stack;
 
 /**
  * Map implemented as an AVL Tree.
@@ -19,38 +16,19 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
 
   /*** Do not change variable name of 'root'. ***/
   private Node<K, V> root;
-  private int numElements;
+  private int size;
 
+  /**
+   * Default constructor for AVL tree.
+   */
   public AvlTreeMap() {
-    numElements = 0;
+    size = 0;
     root = null;
   }
 
   /**
-   * Attempts to find if a node with a given key is present,
-   * starting from search at the given root
-   * @param r starting point for the search
-   * @param k the target key value
-   * @return Node if it is present, null otherwise
-   */
-  private Node<K, V> find(Node<K, V> r, K k) {
-    if (r == null) {
-      return null;
-    } else {
-      int comparisonResult = r.key.compareTo(k);
-      if (comparisonResult == 0) { // root == target
-        return r;
-      } else if (comparisonResult < 0) { // root < target
-        return find(r.right, k);
-      } else { // root > target
-        return find(r.left, k);
-      }
-    }
-  }
-
-  /**
    * If the balance factor of the given node is off,
-   * performs appropriate recalibrations
+   * performs appropriate recalibrations.
    * @param node node to be checked
    */
   private Node<K, V> balance(Node<K, V> node) {
@@ -123,29 +101,6 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
   }
 
   /**
-   * Inserts node to the tree defined at root.
-   * Always call with root = insert(root, node).
-   * @param r base of the tree
-   * @param k key to be added
-   * @param v value to be added
-   * @return the (updated) root
-   */
-  private Node<K, V> insert(Node<K, V> r, K k, V v) {
-    if (r == null) {
-      return new Node<K, V>(k, v);
-    } else {
-      int comparisonResult = r.key.compareTo(k);
-      if (comparisonResult < 0) { // root < node
-        r.right = insert(r.right, k, v);
-      } else {
-        r.left = insert(r.left, k, v);
-      }
-      height(r); // update height
-      return balance(r); // re-balance if needed
-    }
-  }
-
-  /**
    * Returns the node of the given height, appropriately
    * updating heights accordingly.
    * @param node target node
@@ -157,7 +112,7 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     } else if (node.right == null && node.left == null) {
       node.height = 0;
     } else {
-      node.height = 1 + max(height(node.right), height(node.left));
+      node.height = 1 + Math.max(height(node.right), height(node.left));
     }
     return node.height;
   }
@@ -173,88 +128,113 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     return leftSubtreeHeight - rightSubtreeHeight;
   }
 
-  @Override
-  public void insert(K k, V v) throws IllegalArgumentException {
-    if (k == null || has(k)) {
-      throw new IllegalArgumentException();
+  // Insert given key and value into subtree rooted at given node;
+  // return changed subtree with a new node added.
+  private Node<K, V> insert(Node<K, V> n, K k, V v) {
+    if (n == null) {
+      return new Node<>(k, v);
     }
-    // now, we know the key is not present and not null
-    root = insert(root, k, v);
-    numElements++;
-  }
 
-  /**
-   * Returns the largest node in a given subtree.
-   * @param node root
-   * @return node with largest value
-   */
-  private Node<K, V> findLargestNode(Node<K, V> node) {
-    if (node.right == null) {
-      return node;
+    int cmp = k.compareTo(n.key);
+    if (cmp < 0) {
+      n.left = insert(n.left, k, v);
+    } else if (cmp > 0) {
+      n.right = insert(n.right, k, v);
     } else {
-      return findLargestNode(node.right);
+      throw new IllegalArgumentException("duplicate key " + k);
     }
+
+    // to make the tree an avl...
+    height(n);
+    return balance(n);
   }
 
-  /**
-   * Removes the subtree with the given key
-   * @param node root
-   * @param k target key
-   * @return the new root
-   */
-  private Node<K, V> removeSubtree(Node<K, V> node, K k) {
-    int compareResult = k.compareTo(node.key);
-    if (compareResult == 0) { // found the node
-      if (node.left == null) {
-        return node.right;
-      } else if (node.right == null) {
-        return node.left;
-      } else {
-        // recurse
-        Node<K, V> largest = findLargestNode(node.left);
-        node.value = largest.value;
-        node.key = largest.key;
-        node.left = removeSubtree(node.left, largest.key);
-        return node;
-      }
-    } else if (compareResult < 0) { // k < node.key
-      node.left = removeSubtree(node.left, k);
-    } else { // k > node.key
-      node.right = removeSubtree(node.right, k);
+  @Override
+  public void insert(K k, V v) {
+    if (k == null) {
+      throw new IllegalArgumentException("cannot handle null key");
     }
-    height(node);
-    return balance(node); // check if node needs to be rebalanced on recursion up
+    root = insert(root, k, v);
+    size++;
   }
 
   @Override
   public V remove(K k) throws IllegalArgumentException {
-    Node<K, V> found =  find(root, k);
-    if (k == null || found == null) {
-      throw new IllegalArgumentException();
+    Node<K, V> node = findForSure(k);
+    V value = node.value;
+    root = remove(root, node);
+    size--;
+    return value;
+  }
+
+  // Remove node with given key from subtree rooted at given node;
+  // Return changed subtree with given key missing.
+  private Node<K, V> remove(Node<K, V> subtreeRoot, Node<K, V> toRemove) {
+    int cmp = subtreeRoot.key.compareTo(toRemove.key);
+    if (cmp == 0) {
+      return remove(subtreeRoot);
+    } else if (cmp > 0) {
+      subtreeRoot.left = remove(subtreeRoot.left, toRemove);
+    } else {
+      subtreeRoot.right = remove(subtreeRoot.right, toRemove);
     }
-    // now, we know the key is present and not null
-    V result = found.value;
-    root = removeSubtree(root, k);
-    numElements--;
-    return result;
+
+    // to make the tree an avl...
+    height(subtreeRoot);
+    return balance(subtreeRoot);
+  }
+
+  // Remove given node and return the remaining tree (structural change).
+  private Node<K, V> remove(Node<K, V> node) {
+    // Easy if the node has 0 or 1 child.
+    if (node.right == null) {
+      return node.left;
+    } else if (node.left == null) {
+      return node.right;
+    }
+
+    // If it has two children, find the predecessor (max in left subtree),
+    Node<K, V> toReplaceWith = max(node);
+    // then copy its data to the given node (value change),
+    node.key = toReplaceWith.key;
+    node.value = toReplaceWith.value;
+    // then remove the predecessor node (structural change).
+    node.left = remove(node.left, toReplaceWith);
+
+    // to make the tree an avl...
+    height(node);
+    return balance(node);
+  }
+
+  // Return a node with maximum key in subtree rooted at given node.
+  private Node<K, V> max(Node<K, V> node) {
+    Node<K, V> curr = node.left;
+    while (curr.right != null) {
+      curr = curr.right;
+    }
+    return curr;
   }
 
   @Override
   public void put(K k, V v) throws IllegalArgumentException {
-    Node<K, V> found = find(root, k);
-    if (k == null || found == null) {
-      throw new IllegalArgumentException();
+    Node<K, V> n = findForSure(k);
+    n.value = v;
+  }
+
+  // Return node for given key,
+  // throw an exception if the key is not in the tree.
+  private Node<K, V> findForSure(K k) throws IllegalArgumentException {
+    Node<K, V> n = find(k);
+    if (n == null) {
+      throw new IllegalArgumentException("cannot find key " + k);
     }
-    found.value = v;
+    return n;
   }
 
   @Override
   public V get(K k) throws IllegalArgumentException {
-    Node<K, V> found = find(root, k);
-    if (k == null || found == null) {
-      throw new IllegalArgumentException();
-    }
-    return found.value;
+    Node<K, V> n = findForSure(k);
+    return n.value;
   }
 
   @Override
@@ -262,48 +242,64 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     if (k == null) {
       return false;
     }
-    return find(root, k) != null;
+    return find(k) != null;
+  }
+
+  // Return node for given key.
+  private Node<K, V> find(K k) {
+    if (k == null) {
+      throw new IllegalArgumentException("cannot handle null key");
+    }
+    Node<K, V> n = root;
+    while (n != null) {
+      int cmp = k.compareTo(n.key);
+      if (cmp < 0) {
+        n = n.left;
+      } else if (cmp > 0) {
+        n = n.right;
+      } else {
+        return n;
+      }
+    }
+    return null;
   }
 
   @Override
   public int size() {
-    return numElements;
+    return size;
   }
 
   @Override
   public Iterator<K> iterator() {
-    return new avlTreeMapIterator();
+    return new AvlTreeMapIterator();
   }
 
-  public class avlTreeMapIterator implements Iterator<K> {
+  public class AvlTreeMapIterator implements Iterator<K> {
 
-    Queue<K> queue;
+    private final Stack<Node<K, V>> stack;
 
-    avlTreeMapIterator() {
-      queue = new ArrayDeque<K>();
-      fillQueue(root);
+    AvlTreeMapIterator() {
+      stack = new Stack<>();
+      pushLeft(root);
     }
 
-    private void fillQueue(Node<K, V> node) {
-      if (node != null) {
-        fillQueue(node.left);
-        queue.add(node.key);
-        fillQueue(node.right);
+    private void pushLeft(Node<K, V> curr) {
+      while (curr != null) {
+        stack.push(curr);
+        curr = curr.left;
       }
     }
 
     @Override
     public boolean hasNext() {
-      return (!queue.isEmpty());
+      return !stack.isEmpty();
     }
 
     @Override
-    public K next() throws NoSuchElementException {
-      if (!hasNext()) {
-        throw new NoSuchElementException();
-      } else {
-        return queue.remove();
-      }
+    public K next() {
+      Node<K, V> top = stack.pop();
+      pushLeft(top.right);
+      return top.key;
     }
   }
 
