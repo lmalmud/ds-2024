@@ -32,21 +32,21 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
    * @param node node to be checked
    */
   private Node<K, V> balance(Node<K, V> node) {
-    // single right rotation: left heavy node, left heavy child
-    if (balanceFactor(node) > 1 && balanceFactor(node.left) >= 1) {
-      return rightRotate(node);
-
-    // single left rotation: right heavy node, right heavy child
-    } else if (balanceFactor(node) < -1 && balanceFactor(node.right) <= -1) {
-      return leftRotate(node);
-
     // right-left rotation: right heavy node, left heavy child
-    } else if (balanceFactor(node) < -1 && balanceFactor(node.right) >= 1) {
+    if (balanceFactor(node) < -1 && balanceFactor(node.right) >= 1) {
       return rightLeftRotate(node);
 
     // left-right rotation: left heavy node, right heavy child
     } else if (balanceFactor(node) > 1 && balanceFactor(node.left) <= -1) {
       return leftRightRotate(node);
+
+    // single right rotation: left heavy node, left heavy child
+    } else if (balanceFactor(node) > 1) {
+      return rightRotate(node);
+
+      // single left rotation: right heavy node, right heavy child
+    } else if (balanceFactor(node) < -1) {
+      return leftRotate(node);
     }
     return node;
 
@@ -61,8 +61,8 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     Node<K, V> child = node.right;
     node.right = child.left;
     child.left = node;
-    height(child); // want to update the child's height before the node's
-    height(node);
+    node.height = height(node); // changed since not necessarily - 1
+    child.height = height(child);
     return child;
   }
 
@@ -75,8 +75,8 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     Node<K, V> child = node.left;
     node.left = child.right;
     child.right = node;
-    height(child);
-    height(node);
+    node.height = height(node); // changed since not necessarily - 1
+    child.height = height(child);
     return child;
   }
 
@@ -107,18 +107,13 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
    * @return height of node
    */
   private int height(Node<K, V> node) {
-    if (node == null) {
-      return -1;
-    } else if (node.right == null && node.left == null) {
-      node.height = 0;
-    } else {
-      node.height = 1 + Math.max(height(node.right), height(node.left));
-    }
-    return node.height;
+    int leftHeight = (node.left == null) ? -1 : node.left.height;
+    int rightHeight = (node.right == null) ? -1 : node.right.height;
+    return 1 + Math.max(leftHeight, rightHeight);
   }
 
   /**
-   * Given a node, returns its balance factor
+   * Given a node, returns its balance factor.
    * @param node to find the balance factor of
    * @return integer representing the balance factor
    */
@@ -145,7 +140,7 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     }
 
     // to make the tree an avl...
-    height(n);
+    n.height = height(n);
     return balance(n);
   }
 
@@ -170,6 +165,7 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
   // Remove node with given key from subtree rooted at given node;
   // Return changed subtree with given key missing.
   private Node<K, V> remove(Node<K, V> subtreeRoot, Node<K, V> toRemove) {
+
     int cmp = subtreeRoot.key.compareTo(toRemove.key);
     if (cmp == 0) {
       return remove(subtreeRoot);
@@ -180,7 +176,7 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     }
 
     // to make the tree an avl...
-    height(subtreeRoot);
+    subtreeRoot.height = height(subtreeRoot);
     return balance(subtreeRoot);
   }
 
@@ -202,7 +198,7 @@ public class AvlTreeMap<K extends Comparable<K>, V> implements OrderedMap<K, V> 
     node.left = remove(node.left, toReplaceWith);
 
     // to make the tree an avl...
-    height(node);
+    node.height = height(node);
     return balance(node);
   }
 

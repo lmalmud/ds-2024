@@ -29,37 +29,16 @@ public class TreapMap<K extends Comparable<K>, V> implements OrderedMap<K, V> {
     rand = new Random();
   }
 
+  /**
+   * Non-default constructor for testing purposes.
+   * @param seed seed value for Random
+   */
   public TreapMap(int seed) {
     rand = new Random(seed);
     // Uncomment for writing tests:
     /*for (int i = 0; i < 10; i++) {
       System.out.println(rand.nextInt());
     }*/
-  }
-
-  // Insert given key and value into subtree rooted at given node;
-  // return changed subtree with a new node added.
-  private Node<K, V> insert(Node<K, V> n, K k, V v) {
-    if (n == null) {
-      return new Node<>(k, v);
-    }
-
-    int cmp = k.compareTo(n.key);
-    if (cmp < 0) {
-      n.left = insert(n.left, k, v);
-      if (n.left.priority < n.priority) {
-        n = rightRotate(n);
-      }
-    } else if (cmp > 0) {
-      n.right = insert(n.right, k, v);
-      if (n.right.priority < n.priority) {
-        n = leftRotate(n);
-      }
-    } else {
-      throw new IllegalArgumentException("duplicate key " + k);
-    }
-
-    return n;
   }
 
   private Node<K, V> rightRotate(Node<K, V> n) {
@@ -76,26 +55,7 @@ public class TreapMap<K extends Comparable<K>, V> implements OrderedMap<K, V> {
     return child;
   }
 
-  @Override
-  public void insert(K k, V v) throws IllegalArgumentException {
-    if (k == null) {
-      throw new IllegalArgumentException("cannot handle null key");
-    }
-    root = insert(root, k, v);
-    size++;
-  }
-
-  @Override
-  public V remove(K k) throws IllegalArgumentException {
-    Node<K, V> node = findForSure(k);
-    node.priority = MAX_VALUE; // ensure that bubbling properly occurs
-    V value = node.value;
-    root = remove(root, k); // switched to also find the node
-    size--;
-    return value;
-  }
-
-  private int p(Node<K, V> n) {
+  private int getPriority(Node<K, V> n) {
     if (n == null) {
       return MAX_VALUE;
     } else {
@@ -107,50 +67,12 @@ public class TreapMap<K extends Comparable<K>, V> implements OrderedMap<K, V> {
     return n.left == null && n.right == null;
   }
 
-  /**
-   * Removes a node from a subtree
-   * @param subtreeRoot the root of the given subtree
-   * @param toRemove the item to be removed (already has maximum priority)
-   * @return the new root of the subtree
-   */
-  private Node<K, V> remove(Node<K, V> subtreeRoot, K toRemove) {
-
-    if (subtreeRoot == null || nodeIsLeaf(subtreeRoot)) {
+  private Node<K, V> removeSubtree(Node<K, V> n, K toRemove) {
+    if (nodeIsLeaf(n) && n.key.compareTo(toRemove) == 0) {
       return null;
+    } else {
+      return remove(n, toRemove);
     }
-
-    int cmp = subtreeRoot.key.compareTo(toRemove);
-    if (cmp < 0) { // subtreeRoot < toRemove
-      // if the target is a leaf and the right child
-      if (nodeIsLeaf(subtreeRoot.right) && subtreeRoot.right.key.compareTo(toRemove) == 0) {
-        subtreeRoot.right = null;
-      } else {
-        subtreeRoot.right = remove(subtreeRoot.right, toRemove);
-      }
-
-    } else if (cmp > 0) {
-      // if the target is a leaf and the left child
-      if (nodeIsLeaf(subtreeRoot.left) && subtreeRoot.left.key.compareTo(toRemove) == 0) {
-        subtreeRoot.left = null;
-      } else {
-        subtreeRoot.left = remove(subtreeRoot.left, toRemove);
-      }
-
-    } else { // target found
-      if (!nodeIsLeaf(subtreeRoot)) {
-        // always swap with the node that has higher priority
-        if (p(subtreeRoot.left) < p(subtreeRoot.right)) { // swap with left
-          subtreeRoot = rightRotate(subtreeRoot);
-        } else { // swap with right
-          // the issue is that we are performing a left rotation
-          // once the node is already a leaf and we found it
-          subtreeRoot = leftRotate(subtreeRoot);
-        }
-      }
-      subtreeRoot = remove(subtreeRoot, toRemove);
-
-    }
-    return subtreeRoot;
   }
 
   // Return node for given key,
@@ -180,6 +102,88 @@ public class TreapMap<K extends Comparable<K>, V> implements OrderedMap<K, V> {
       }
     }
     return null;
+  }
+
+  // Insert given key and value into subtree rooted at given node;
+  // return changed subtree with a new node added.
+  private Node<K, V> insert(Node<K, V> n, K k, V v) {
+    if (n == null) {
+      return new Node<>(k, v);
+    }
+
+    int cmp = k.compareTo(n.key);
+    if (cmp < 0) {
+      n.left = insert(n.left, k, v);
+      if (n.left.priority < n.priority) {
+        n = rightRotate(n);
+      }
+    } else if (cmp > 0) {
+      n.right = insert(n.right, k, v);
+      if (n.right.priority < n.priority) {
+        n = leftRotate(n);
+      }
+    } else {
+      throw new IllegalArgumentException("duplicate key " + k);
+    }
+
+    return n;
+  }
+
+  @Override
+  public void insert(K k, V v) throws IllegalArgumentException {
+    if (k == null) {
+      throw new IllegalArgumentException("cannot handle null key");
+    }
+    root = insert(root, k, v);
+    size++;
+  }
+
+  /**
+   * Removes a node from a subtree.
+   * @param subtreeRoot the root of the given subtree
+   * @param toRemove the item to be removed (already has maximum priority)
+   * @return the new root of the subtree
+   */
+  private Node<K, V> remove(Node<K, V> subtreeRoot, K toRemove) {
+
+    if (subtreeRoot == null || nodeIsLeaf(subtreeRoot)) {
+      return null;
+    }
+
+    //int cmp = subtreeRoot.key.compareTo(toRemove);
+    if (subtreeRoot.key.compareTo(toRemove) < 0) { // subtreeRoot < toRemove
+      // if the target is a leaf and the right child
+      subtreeRoot.right = removeSubtree(subtreeRoot.right, toRemove);
+
+    } else if (subtreeRoot.key.compareTo(toRemove) > 0) {
+      // if the target is a leaf and the left child
+      subtreeRoot.left = removeSubtree(subtreeRoot.left, toRemove);
+
+    } else { // target found
+      if (!nodeIsLeaf(subtreeRoot)) {
+        // always swap with the node that has higher priority
+        if (getPriority(subtreeRoot.left) < getPriority(subtreeRoot.right)) { // swap with left
+          subtreeRoot = rightRotate(subtreeRoot);
+        } else { // swap with right
+          // the issue is that we are performing a left rotation
+          // once the node is already a leaf and we found it
+          subtreeRoot = leftRotate(subtreeRoot);
+        }
+      }
+      subtreeRoot = remove(subtreeRoot, toRemove);
+
+    }
+    return subtreeRoot;
+  }
+
+  @Override
+  public V remove(K k) throws IllegalArgumentException {
+    Node<K, V> node = findForSure(k);
+    node.priority = MAX_VALUE; // ensure that bubbling properly occurs
+    V value = node.value;
+    root = remove(root, k); // switched to also find the node
+    size--;
+    return value;
   }
 
   @Override

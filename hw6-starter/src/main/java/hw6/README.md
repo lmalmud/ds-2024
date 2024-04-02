@@ -54,38 +54,50 @@ because the sequence of integers would be offset.
 ```
 hotel_california.txt
 Benchmark                  Mode  Cnt  Score   Error  Units
-JmhRuntimeTest.arrayMap    avgt    2  0.163          ms/op
-JmhRuntimeTest.avlTreeMap  avgt    2  0.165          ms/op
-JmhRuntimeTest.bstMap      avgt    2  0.117          ms/op
-JmhRuntimeTest.treapMap    avgt    2  0.147          ms/op
+JmhRuntimeTest.arrayMap    avgt    2  0.168          ms/op
+JmhRuntimeTest.avlTreeMap  avgt    2  0.123          ms/op
+JmhRuntimeTest.bstMap      avgt    2  0.119          ms/op
+JmhRuntimeTest.treapMap    avgt    2  0.142          ms/op
 
 federalist01.txt
 Benchmark                  Mode  Cnt  Score   Error  Units
-JmhRuntimeTest.arrayMap    avgt    2  1.581          ms/op
-JmhRuntimeTest.avlTreeMap  avgt    2  1.367          ms/op
-JmhRuntimeTest.bstMap      avgt    2  0.565          ms/op
-JmhRuntimeTest.treapMap    avgt    2  0.762          ms/op
+JmhRuntimeTest.arrayMap    avgt    2  1.629          ms/op
+JmhRuntimeTest.avlTreeMap  avgt    2  0.669          ms/op
+JmhRuntimeTest.bstMap      avgt    2  0.566          ms/op
+JmhRuntimeTest.treapMap    avgt    2  0.773          ms/op
 
 moby_dick.txt
 Benchmark                  Mode  Cnt     Score   Error  Units
-JmhRuntimeTest.arrayMap    avgt    2  2231.525          ms/op
-JmhRuntimeTest.avlTreeMap  avgt    2   717.296          ms/op
-JmhRuntimeTest.bstMap      avgt    2    95.278          ms/op
-JmhRuntimeTest.treapMap    avgt    2   111.734          ms/op
+JmhRuntimeTest.arrayMap    avgt    2  2213.605          ms/op
+JmhRuntimeTest.avlTreeMap  avgt    2    97.027          ms/op
+JmhRuntimeTest.bstMap      avgt    2   100.441          ms/op
+JmhRuntimeTest.treapMap    avgt    2   119.348          ms/op
 
 pride_and_prejudice.txt
 Benchmark                  Mode  Cnt    Score   Error  Units
-JmhRuntimeTest.arrayMap    avgt    2  461.729          ms/op
-JmhRuntimeTest.avlTreeMap  avgt    2  132.814          ms/op
-JmhRuntimeTest.bstMap      avgt    2   52.357          ms/op
-JmhRuntimeTest.treapMap    avgt    2   61.358          ms/op
+JmhRuntimeTest.arrayMap    avgt    2  478.697          ms/op
+JmhRuntimeTest.avlTreeMap  avgt    2   52.419          ms/op
+JmhRuntimeTest.bstMap      avgt    2   52.616          ms/op
+JmhRuntimeTest.treapMap    avgt    2   63.294          ms/op
 ```
 
 We see that performance, from best to worst, is as follows:
-1. bstMap
-2. treapMap
-3. avlTreeMap
+1. avlTreeMap / bstTreeMap
+3. treapMap
 4. arrayMap
 
-Clearly, the array map performs quite poorly due to the linear search.
-We find that the treap performs better than the avl tree because...
+Clearly, the array map performs quite poorly due to the linear search required to
+find elements. The AVL
+tree and BST have comparable performances because they are both sorted. The AVL
+has the best performance on datasets that are overall larger because the added time
+of balancing the tree ends up outweighing the time to maintain that balance, where
+this effect is not as prominent in the smaller datasets. For AVLs,
+is guaranteed that there will never need to be a traversal of length more than `O(lg(n))`,
+since there is a balanced structure of the tree that is maintained. A BST performs better
+than a treap in this instance because, the extra work done by assigning random priorities
+does not compensate for the extra swapping that is required to maintain the priority. Since the
+text is extracted from literature, it is not often in entirely ascending or descending order.
+
+In conclusion, it is important to note that, based on the nature of the dataset, the extra
+time and space required to maintain the balance of the AVL tree/generate random priorities
+did not necessarily compensate for the gained efficiency.

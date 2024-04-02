@@ -81,7 +81,7 @@ public class TreapMapTest extends BinarySearchTreeMapTest {
 
   @Test
   @DisplayName("Ensures that structure is maintained when a node with one child is removed.")
-  public void removeOneChild() {
+  public void removeOneChildNoRotation() {
     Map<String, String> map = createMapWithSeed(4);
     map.insert("c", "c"); // -1157023572 (1) - root
     map.insert("b", "b"); // -396984392 (2) - right child
@@ -102,6 +102,18 @@ public class TreapMapTest extends BinarySearchTreeMapTest {
 
     assertEquals(1, map.size());
     assertEquals("c:c:-1157023572\n", map.toString());
+  }
+
+  @Test
+  @DisplayName("Ensures inserting when no swaps should occur happens properly.")
+  public void insertNoSwapsOccur() {
+    Map<String, String> map = createMapWithSeed(4);
+    map.insert("b", "b"); // -1157023572 (1) - root
+    map.insert("a", "a"); // -396984392 (2)
+    map.insert("c", "c"); // -349120689 (3)
+
+    assertEquals(3, map.size());
+    assertEquals("b:b:-1157023572\na:a:-396984392 c:c:-349120689\n", map.toString());
   }
 
 }
