@@ -7,8 +7,11 @@ import java.util.NoSuchElementException;
 public class OpenAddressingHashMap<K, V> implements Map<K, V> {
 
   private Node<K, V>[] data;
+  int primes[] = {5, 11, 23, 47, 97, 197, 397, 797, 1597, 3203, 6421, 12853, 25717, 51437,102877, 205759, 411527, 823117, 1646237,3292489, 6584983, 13169977};
+  private int primeCapacity;
   private int capacity;
   private int numElements;
+  private final double alpha = .75;
   private final Node<K, V> tombstone = new Node<>(null, null);
 
   /**
@@ -18,6 +21,7 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
     this.capacity = 5;
     this.data = new Node[this.capacity];
     this.numElements = 0;
+    this.primeCapacity = 0;
   }
 
   /**
@@ -55,11 +59,12 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
   }
 
   /**
-   * Doubles the capacity of the underlying array.
+   * Rehashes the underlying array, changing size to the next prime number.
    */
-  private void grow() {
+  private void rehash() {
     Node<K, V>[] replicaData = this.data; // create a copy of all data
-    this.capacity *= 2;
+    this.primeCapacity++;
+    this.capacity = this.primes[primeCapacity]; // use prime numbers for table size
     this.data = new Node[this.capacity]; // now we have an empty array of twice the size
 
     for (int i = 0; i < this.capacity / 2; i++) { // loop through all elements in original array
@@ -75,8 +80,8 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
     if (k == null || find(k) != null) { // k null or already mapped
       throw new IllegalArgumentException();
     }
-    if (this.numElements >= this.capacity) { // grow proactively
-      this.grow();
+    if (this.numElements / this.capacity >= alpha) { // grow proactively
+      this.rehash();
     }
     // we are guaranteed that there is space in the array
     int index = getIndex(k);

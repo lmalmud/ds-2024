@@ -215,4 +215,150 @@ public abstract class MapTest {
   // Ideally we should also check for "Keys must be immutable"
   // This is not trivial; check out
   // https://github.com/MutabilityDetector/MutabilityDetector
+
+  /* MY CASES */
+
+    @Test
+    public void testInsert() {
+      map.insert("a", "1");
+      map.insert("b", "2");
+      map.insert("c", "3");
+      assertEquals(3, map.size());
+      assertTrue(map.has("a"));
+      assertTrue(map.has("b"));
+      assertTrue(map.has("c"));
+    }
+
+    @Test
+    public void testRemove() {
+      map.insert("a", "1");
+      map.insert("b", "2");
+      map.insert("c", "3");
+      assertEquals(3, map.size());
+
+      String removedValue = map.remove("b");
+      assertEquals("2", removedValue);
+      assertEquals(2, map.size());
+      assertFalse(map.has("b"));
+    }
+
+    @Test
+    public void testInsertDuplicateKey() {
+      map.insert("a", "1");
+      try {
+        map.insert("a", "2");
+        fail();
+      }
+      catch (IllegalArgumentException e) {
+
+      }
+
+    }
+
+    @Test
+    public void testRemoveNonexistentKey() {
+      try {
+        map.remove("a"); // Should throw IllegalArgumentException
+        fail();
+      }
+      catch (IllegalArgumentException e) {
+
+      }
+    }
+
+    @Test
+    public void testInsertAndRemove() {
+      map.insert("a", "1");
+      map.insert("b", "2");
+      assertEquals(2, map.size());
+
+      map.remove("a");
+      assertEquals(1, map.size());
+      assertFalse(map.has("a"));
+      assertTrue(map.has("b"));
+    }
+
+  @Test
+  public void testInsertWithNullKey() {
+    try {
+      map.insert(null, "value");
+      fail("Expected IllegalArgumentException for inserting null key");
+    } catch (IllegalArgumentException e) {
+      assertEquals(0, map.size());
+    }
+  }
+
+  @Test
+  public void testInsertWithNullValue() {
+    map.insert("key", null);
+    assertEquals(1, map.size());
+    assertNull(map.get("key"));
+  }
+
+  @Test
+  public void testRemoveWithNullKey() {
+    try {
+      map.remove(null);
+      fail("Expected IllegalArgumentException for removing null key");
+    } catch (IllegalArgumentException e) {
+      assertEquals(0, map.size());
+    }
+  }
+
+  @Test
+  public void testPutWithNullKey() {
+    try {
+      map.put(null, "value");
+      fail("Expected IllegalArgumentException for putting null key");
+    } catch (IllegalArgumentException e) {
+      assertEquals(0, map.size());
+    }
+  }
+
+  @Test
+  public void testGetWithNullKey() {
+    try {
+      map.get(null);
+      fail("Expected IllegalArgumentException for getting null key");
+    } catch (IllegalArgumentException e) {
+      assertEquals(0, map.size());
+    }
+  }
+
+  @Test
+  public void testHasWithNullKey() {
+    assertFalse(map.has(null));
+  }
+
+  @Test
+  public void testRehashing() {
+    map.insert("a", "1");
+    map.insert("b", "2");
+    map.insert("c", "3");
+    assertEquals(3, map.size());
+
+    // Inserting one more element should trigger rehashing
+    map.insert("d", "4");
+    assertEquals(4, map.size());
+    assertTrue(map.has("d"));
+  }
+
+  @Test
+  public void testLinearProbing() {
+    map.insert("1", "a");
+    map.insert("6", "b"); // Collides with index 1, should be probed to index 2
+    map.insert("11", "c"); // Collides with index 1 and 2, should be probed to index 3
+    map.insert("16", "d"); // Collides with index 1, 2, and 3, should be probed to index 4
+    map.insert("21", "e"); // Collides with index 1, 2, 3, and 4, should be probed to index 0
+    assertEquals(5, map.size());
+
+    // All elements should be retrievable
+    assertEquals("a", map.get("1"));
+    assertEquals("b", map.get("6"));
+    assertEquals("c", map.get("11"));
+    assertEquals("d", map.get("16"));
+    assertEquals("e", map.get("21"));
+  }
+
+
 }
