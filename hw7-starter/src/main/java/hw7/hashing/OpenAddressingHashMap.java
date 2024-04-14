@@ -6,11 +6,13 @@ import java.util.NoSuchElementException;
 
 public class OpenAddressingHashMap<K, V> implements Map<K, V> {
 
-  private Node<K, V>[] data;
-  int primes[] = {5, 11, 23, 47, 97, 197, 397, 797, 1597, 3203, 6421, 12853, 25717, 51437,102877, 205759, 411527, 823117, 1646237,3292489, 6584983, 13169977};
+  Node<K, V>[] data;
+  private int[] primes = {5, 11, 23, 47, 97, 197, 397, 797, 1597, 3203, 6421, 12853,
+    25717, 51437,102877, 205759, 411527, 823117, 1646237,3292489, 6584983, 13169977};
   private int primeCapacity;
   private int capacity;
   private int numElements;
+  private int numTombstones;
   private final double alpha = .75;
   private final Node<K, V> tombstone = new Node<>(null, null);
 
@@ -19,9 +21,10 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
    */
   public OpenAddressingHashMap() {
     this.capacity = 5;
-    this.data = new Node[this.capacity];
+    this.data = (Node<K, V>[]) new Node<?, ?>[this.capacity];
     this.numElements = 0;
     this.primeCapacity = 0;
+    this.numTombstones = 0;
   }
 
   /**
@@ -31,7 +34,7 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
    * @return index that will contain the element
    */
   int getIndex(K key) {
-    return key.hashCode() % this.capacity;
+    return Math.abs(key.hashCode() % this.capacity);
   }
 
   /**
@@ -44,18 +47,20 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
       return null;
     }
     int index = getIndex(k);
-    // note we first have to check if the value is null because we cannot dereference null values
-    if (this.data[index] != null && this.data[index].key == k) { // see if the key is at the mapped address
-      return this.data[index];
-    } else {
-      for (int i = 0; i < this.capacity; i++) {
-        index = (getIndex(k) + i) % this.capacity;
-        if (this.data[index] != null && this.data[index].key == k) { // see if the key is at the mapped address
-          return this.data[index];
-        }
+
+    for (int i = 0; i < this.capacity; i++) {
+      index = (getIndex(k) + i) % this.capacity;
+      if (this.data[index] == null) {
+        return null;
       }
-      return null; // we traversed the entire list and could not find the value
+      if (this.data[index].key == null) {
+        continue; // loop over a tombstone
+      }
+      if (this.data[index].key.equals(k)) { // see if the key is at the mapped address
+        return this.data[index];
+      }
     }
+    return null; // we traversed the entire list and could not find the value
   }
 
   /**
@@ -63,37 +68,39 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
    */
   private void rehash() {
     Node<K, V>[] replicaData = this.data; // create a copy of all data
+    this.numElements = 0; // need to reset the number of elements, because insert re-increments
     this.primeCapacity++;
-    this.capacity = this.primes[primeCapacity]; // use prime numbers for table size
-    this.data = new Node[this.capacity]; // now we have an empty array of twice the size
-
-    for (int i = 0; i < this.capacity / 2; i++) { // loop through all elements in original array
-      if (replicaData[i] != tombstone) { // only want to insert non-tombstone values
+    int oldCapacity = this.capacity;
+    this.capacity = this.primes[this.primeCapacity]; // use prime numbers for table size
+    this.data = (Node<K, V>[]) new Node<?, ?>[this.capacity]; // now we have an empty array of twice the size
+    for (int i = 0; i < oldCapacity; i++) { // loop through all elements in original array
+      if (replicaData[i] != tombstone && replicaData[i] != null) { // only want to insert non-tombstone values34
         this.insert(replicaData[i].key, replicaData[i].value); // this function will has and probe appropriately
       }
     }
+    this.numTombstones = 0;
+
 
   }
 
   @Override
   public void insert(K k, V v) throws IllegalArgumentException {
-    if (k == null || find(k) != null) { // k null or already mapped
+    if (k == null || find(k) != null) {
       throw new IllegalArgumentException();
     }
-    if (this.numElements / this.capacity >= alpha) { // grow proactively
-      this.rehash();
-    }
-    // we are guaranteed that there is space in the array
-    int index = getIndex(k);
 
-    // if table[index] is occupied, then
+    if (((this.numElements + this.numTombstones) / (float) this.capacity) >= alpha) {
+      rehash();
+    }
+
+    int originalIndex = getIndex(k);
     for (int i = 0; i < this.capacity; i++) {
-      index = (getIndex(k) + i) % this.capacity;
-      if (this.data[index] == null) { // we found an empty spot
-        this.data[index] = new Node<>(k, v); // insert the new node
+      originalIndex = (getIndex(k) + i) % this.capacity;
+      if (this.data[originalIndex] == null || this.data[originalIndex] == tombstone) {
         break;
       }
     }
+    this.data[originalIndex] = new Node<K, V>(k, v);
     this.numElements++;
   }
 
@@ -109,13 +116,15 @@ public class OpenAddressingHashMap<K, V> implements Map<K, V> {
     // if table[index] is occupied, then
     for (int i = 0; i < this.capacity; i++) {
       index = (getIndex(k) + i) % this.capacity;
-      if (this.data[index].key == k) { // we found the node
+      // will never try to derference null pointer because nodes always consecutive
+      if (this.data[index].key.equals(k)) { // we found the node
         result = this.data[index].value; // save the value
         this.data[index] = this.tombstone; // put a tombstone in
         break;
       }
     }
     this.numElements--;
+    this.numTombstones++;
     return result;
   }
 

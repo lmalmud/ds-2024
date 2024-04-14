@@ -6,12 +6,13 @@ import java.util.NoSuchElementException;
 
 public class ChainingHashMap<K, V> implements Map<K, V> {
 
-  private Node<K, V>[] data;
+  Node<K, V>[] data;
+  private int[] primes = {5, 11, 23, 47, 97, 197, 397, 797, 1597, 3203, 6421, 12853,
+    25717, 51437,102877, 205759, 411527, 823117, 1646237,3292489, 6584983, 13169977};
   private int capacity;
   private int numElements;
-  int primes[] = {5, 11, 23, 47, 97, 197, 397, 797, 1597, 3203, 6421, 12853, 25717, 51437,102877, 205759, 411527, 823117, 1646237,3292489, 6584983, 13169977};
   private int primeCapacity;
-  private final double maxBucketSize = 4;
+  private final double maxBucketSize = 6;
 
   /**
    * Default constructor for OpenAddressingHashMap.
@@ -19,7 +20,7 @@ public class ChainingHashMap<K, V> implements Map<K, V> {
   public ChainingHashMap() {
     this.capacity = 5;
     // there is a dummy node at the beginning of each index
-    this.data = createNewNodeArray(this.capacity);
+    this.data = (Node<K, V>[]) createNewNodeArray(this.capacity);
     this.primeCapacity = 0; // the current size of the data as stored in the primes array
     this.numElements = 0;
   }
@@ -45,7 +46,8 @@ public class ChainingHashMap<K, V> implements Map<K, V> {
    * @return index that will contain the element
    */
   int getIndex(K key) {
-    return key.hashCode() % this.capacity;
+    //System.out.println("index of: " + key + " is " + Math.abs(key.hashCode() % this.capacity));
+    return Math.abs(key.hashCode() % this.capacity);
   }
 
   /**
@@ -54,12 +56,13 @@ public class ChainingHashMap<K, V> implements Map<K, V> {
    * @return the node containing the target value or null
    */
   private Node<K, V> find(K k) {
+
     if (k == null) {
       return null;
     }
     int index = getIndex(k);
-    Node<K, V> current = this.data[index];
-    while (current != null && current.key != k) {
+    Node<K, V> current = this.data[index].next; // there is always a dummy node
+    while (current != null && !current.key.equals(k)) {
       current = current.next;
     }
     return current;
@@ -69,7 +72,23 @@ public class ChainingHashMap<K, V> implements Map<K, V> {
    * Doubles the capacity of the underlying array, and rehashes.
    */
   private void rehash() {
-
+    this.primeCapacity++;
+    this.capacity = this.primes[this.primeCapacity];
+    Node<K, V>[] oldArray = this.data;
+    this.data = (Node<K, V>[]) createNewNodeArray(this.primes[this.primeCapacity]);
+    this.numElements = 0;
+    int currentIndex = 0;
+    Node<K, V> currentNode;
+    for (int i = 0; i < this.primes[this.primeCapacity - 1]; i++) {
+      currentNode = oldArray[i];
+      if (currentNode.key == null) {
+        currentNode = currentNode.next;
+      }
+      while (currentNode != null) {
+        insert(currentNode.key, currentNode.value);
+        currentNode = currentNode.next;
+      }
+    }
   }
 
   @Override
@@ -100,7 +119,7 @@ public class ChainingHashMap<K, V> implements Map<K, V> {
     }
     int index = getIndex(k);
     Node<K, V> currentNode = this.data[index];
-    while (currentNode.next.key != k) {
+    while (!currentNode.next.key.equals(k)) {
       currentNode = currentNode.next;
     }
     // currentNode is now the node before the target

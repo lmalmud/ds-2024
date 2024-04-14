@@ -326,39 +326,104 @@ public abstract class MapTest {
   }
 
   @Test
+  public void testGetEdgeCase() {
+      map.insert("c", "c"); // mapped to index 4
+      map.insert("pp", "pp"); // mapped to index 4
+      assertTrue(map.has("c"));
+      assertTrue(map.has("pp"));
+      map.remove("c");
+      assertFalse(map.has("c"));
+      assertTrue(map.has("pp"));
+
+  }
+
+  @Test
   public void testHasWithNullKey() {
     assertFalse(map.has(null));
   }
 
   @Test
-  public void testRehashing() {
-    map.insert("a", "1");
-    map.insert("b", "2");
-    map.insert("c", "3");
-    assertEquals(3, map.size());
+  public void testRehashingMoreThanFiveElements() {
+      map.insert("a", "a");
+      map.insert("b", "b");
+      map.insert("c", "c");
+      map.insert("d", "d");
+      map.insert("e", "e");
+      map.insert("f", "f"); // should trigger
 
-    // Inserting one more element should trigger rehashing
-    map.insert("d", "4");
-    assertEquals(4, map.size());
-    assertTrue(map.has("d"));
+      assertEquals(6, map.size());
+      assertEquals("a", map.get("a"));
+      assertTrue(map.has("a"));
+      map.remove("d");
+      assertFalse(map.has("d"));
+
+      // now there are five elements- should rehash after four more added
+      map.insert("g",  "g");
+      map.insert("h", "h");
+      map.insert("i", "i");
+      map.insert("j", "j");
+      assertEquals(9, map.size());
+
   }
 
   @Test
-  public void testLinearProbing() {
-    map.insert("1", "a");
-    map.insert("6", "b"); // Collides with index 1, should be probed to index 2
-    map.insert("11", "c"); // Collides with index 1 and 2, should be probed to index 3
-    map.insert("16", "d"); // Collides with index 1, 2, and 3, should be probed to index 4
-    map.insert("21", "e"); // Collides with index 1, 2, 3, and 4, should be probed to index 0
-    assertEquals(5, map.size());
+  public void insertAndGetIncludingRehash() {
+      map.insert("a", "A");
+      assertTrue(map.has("a"));
+      assertEquals("A", map.get("a"));
 
-    // All elements should be retrievable
-    assertEquals("a", map.get("1"));
-    assertEquals("b", map.get("6"));
-    assertEquals("c", map.get("11"));
-    assertEquals("d", map.get("16"));
-    assertEquals("e", map.get("21"));
+      map.insert("b", "B");
+      assertTrue(map.has("b"));
+      assertEquals("B", map.get("b"));
+
+      map.insert("c", "C");
+      assertTrue(map.has("c"));
+      assertEquals("C", map.get("c"));
+
+      map.insert("d", "D");
+      assertTrue(map.has("d"));
+      assertEquals("D", map.get("d"));
+
+      map.insert("e", "E");
+      assertTrue(map.has("e"));
+      assertEquals("E", map.get("e"));
+
+      map.insert("f", "F");
+      assertTrue(map.has("f"));
+      assertEquals("F", map.get("f"));
+
+      map.remove("f");
+      map.remove("e");
+      map.remove("a");
+      map.remove("c");
+      map.insert("c", "C");
+      assertTrue(map.has("c"));
+      assertEquals("C", map.get("c"));
   }
+
+  @Test
+  public void insertBunchOfElements() {
+    String[] toInsert = {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j", "k", "l", "m"};
+    for (int i = 0; i < toInsert.length; i++) {
+      map.insert(toInsert[i], toInsert[i]);
+    }
+    String[] toRemove = {"d", "e", "f"};
+    for (int i = 0; i < toRemove.length; i++) {
+      map.remove(toRemove[i]);
+    }
+
+    for (int i = 0; i < toRemove.length; i++) {
+      assertFalse(map.has(toRemove[i]));
+    }
+
+    String[] remaining = {"a", "b", "c", "g", "h", "i", "j", "k", "l", "m"};
+    for (int i = 0; i < remaining.length; i++) {
+      assertEquals(remaining[i], map.get(remaining[i]));
+      assertTrue(map.has(remaining[i]));
+    }
+
+  }
+
 
 
 }
